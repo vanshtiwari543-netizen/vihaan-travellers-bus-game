@@ -5,128 +5,195 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vihaan Travellers - 3D Bus Simulator</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: Arial, sans-serif; user-select: none; }
-        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        * { box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; background: #050515; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
         
-        /* UI Overlay */
-        #hud {
-            position: absolute; top: 10px; left: 10px; right: 10px;
-            display: flex; justify-content: space-between; align-items: center;
-            pointer-events: none; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        #canvas-container { width: 100vw; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* Realistic Cockpit Overlay UI (Matching your reference image) */
+        #cockpit-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 10; display: flex; flex-direction: column; justify-content: space-between;
         }
-        .brand-banner {
-            background: linear-gradient(135deg, #222, #444);
-            border: 2px solid gold; padding: 8px 16px; border-radius: 8px;
-            font-size: 18px; font-weight: bold; letter-spacing: 2px; color: gold;
+
+        /* Top Header Banner */
+        .top-banner {
+            width: 100%; background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 80%, transparent 100%);
+            display: flex; justify-content: space-between; align-items: flex-start; padding: 15px 25px;
         }
-        .controls-hint {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px;
-            color: #fff; font-size: 14px; pointer-events: none; text-align: center;
+        .brand-title {
+            font-size: 28px; font-weight: 900; color: #f3f4f6; letter-spacing: 3px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(255,255,255,0.4);
+            border-bottom: 3px solid gold; padding-bottom: 2px;
         }
-        .pedal-box {
-            position: absolute; bottom: 20px; right: 20px; display: flex; gap: 15px;
+        .hud-stats {
+            background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 15px; border-radius: 8px; color: gold; font-weight: bold; font-size: 16px;
         }
-        .btn-control {
-            width: 70px; height: 120px; background: rgba(255,255,255,0.3);
-            border: 2px solid white; border-radius: 10px; color: white;
-            font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center;
-            touch-action: manipulation;
+
+        /* Bottom Controls & Dashboard HUD */
+        .bottom-hud {
+            width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 20px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%);
         }
-        #brake-btn { background: rgba(200, 50, 50, 0.5); }
-        #race-btn { background: rgba(50, 200, 50, 0.5); height: 140px; width: 80px; }
+        .steering-wheel-ui {
+            width: 180px; height: 180px; border: 8px solid #222; border-radius: 50%;
+            background: rgba(30,30,30,0.5); display: flex; align-items: center; justify-content: center;
+            pointer-events: auto; position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            touch-action: none;
+        }
+        .steering-inner {
+            width: 50px; height: 50px; background: #111; border-radius: 50%; border: 3px solid gold;
+            display: flex; align-items: center; justify-content: center; color: gold; font-size: 10px; font-weight: bold;
+        }
+        .pedals-group {
+            display: flex; gap: 15px; pointer-events: auto;
+        }
+        .pedal {
+            width: 75px; height: 140px; border-radius: 10px; border: 3px solid white;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;
+            color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.8); cursor: pointer; touch-action: manipulation;
+        }
+        #brake-pedal { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
+        #race-pedal { background: linear-gradient(135deg, #166534, #14532d); height: 160px; }
     </style>
 </head>
 <body>
 
-    <div id="hud">
-        <div class="brand-banner">VIHAAN TRAVELLERS</div>
-        <div id="speedometer" style="font-size: 20px; font-weight: bold;">SPEED: 0 KM/H</div>
-    </div>
-
-    <div class="controls-hint">Left: Steering | Right: Brake & Race (Long press brake for Reverse)</div>
-
-    <div class="pedal-box">
-        <div id="brake-btn" class="btn-control">BRAKE</div>
-        <div id="race-btn" class="btn-control">RACE</div>
-    </div>
-
     <div id="canvas-container"></div>
 
-    <!-- Three.js Library for 3D Graphics -->
+    <!-- UI Overlay matching the requested luxury cockpit view -->
+    <div id="cockpit-overlay">
+        <div class="top-banner">
+            <div class="brand-title">VIHAAN TRAVELLERS</div>
+            <div class="hud-stats" id="speed-display">SPEED: 0 KM/H</div>
+        </div>
+
+        <div class="bottom-hud">
+            <!-- Interactive Steering Wheel on Left -->
+            <div class="steering-wheel-ui" id="steering-area">
+                <div class="steering-inner">HORN</div>
+            </div>
+
+            <!-- Pedals on Right -->
+            <div class="pedals-group">
+                <div class="pedal" id="brake-pedal">BRAKE / REV</div>
+                <div class="pedal" id="race-pedal">RACE</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // Basic 3D Scene Setup
+        // Scene, Camera, Renderer Setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050515); // Night mode base
+        scene.background = new THREE.Color(0x040410);
+        scene.fog = new THREE.FogExp2(0x040410, 0.015);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2.2, -4);
+        camera.lookAt(0, 1.5, 10);
+
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
         // Lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0x334155, 1.2);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(10, 20, 10);
-        scene.add(directionalLight);
 
-        // Road (South Delhi to North Delhi Expressway simulation)
-        const roadGeo = new THREE.PlaneGeometry(12, 1000);
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+        const streetLight = new THREE.DirectionalLight(0x38bdf8, 1.5);
+        streetLight.position.set(20, 40, 20);
+        scene.add(streetLight);
+
+        // Road Environment (South Delhi Highway Simulation)
+        const roadGeo = new THREE.PlaneGeometry(16, 1200);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI / 2;
         scene.add(road);
 
-        // Bus Object (Placeholder representing Vihaan Travellers Bus)
-        const busGroup = new THREE.Group();
-        
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5 });
-        const busBody = new THREE.Mesh(new THREE.BoxGeometry(3, 2.5, 7), bodyMat);
-        busBody.position.y = 1.25;
-        busGroup.add(busBody);
+        // Center lane markings
+        for (let i = -500; i < 500; i += 20) {
+            const lineGeo = new THREE.BoxGeometry(0.4, 0.05, 5);
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+            const line = new THREE.Mesh(lineGeo, lineMat);
+            line.position.set(0, 0.02, i);
+            scene.add(line);
+        }
 
-        // Roof Branding text placeholder simulation
-        camera.position.set(0, 4, -8);
-        camera.lookAt(0, 1, 5);
+        // Environment Buildings (Delhi Skyscrapers / Monuments style)
+        for (let i = -500; i < 500; i += 40) {
+            const bMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
+            
+            // Left Building
+            const bLeft = new THREE.Mesh(new THREE.BoxGeometry(12, 45, 15), bMat);
+            bLeft.position.set(-18, 22.5, i);
+            scene.add(bLeft);
 
+            // Right Building
+            const bRight = new THREE.Mesh(new THREE.BoxGeometry(12, 35, 15), bMat);
+            bRight.position.set(18, 17.5, i + 20);
+            scene.add(bRight);
+        }
+
+        // Monkey Toy Simulation hanging in center view
+        const monkeyGroup = new THREE.Group();
+        const stringMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+        const points = [new THREE.Vector3(0, 3, 2), new THREE.Vector3(0, 1.8, 2)];
+        const stringGeo = new THREE.BufferGeometry().setFromPoints(points);
+        const hangString = new THREE.Line(stringGeo, stringMat);
+        monkeyGroup.add(hangString);
+
+        const monkeyHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), new THREE.MeshStandardMaterial({ color: 0x92400e }));
+        monkeyHead.position.set(0, 1.6, 2);
+        monkeyGroup.add(monkeyHead);
+        scene.add(monkeyGroup);
+
+        // Game Variables
         let speed = 0;
-        let maxSpeed = 0.5;
+        let maxSpeed = 0.8;
         let accelerating = false;
         let braking = false;
+        let steeringVal = 0;
 
-        // Touch Controls Event Listeners
-        const raceBtn = document.getElementById('race-btn');
-        const brakeBtn = document.getElementById('brake-btn');
+        // Control Bindings
+        const racePedal = document.getElementById('race-pedal');
+        const brakePedal = document.getElementById('brake-pedal');
 
-        raceBtn.addEventListener('touchstart', () => { accelerating = true; });
-        raceBtn.addEventListener('touchend', () => { accelerating = false; });
-        raceBtn.addEventListener('mousedown', () => { accelerating = true; });
-        raceBtn.addEventListener('mouseup', () => { accelerating = false; });
+        racePedal.addEventListener('touchstart', () => { accelerating = true; });
+        racePedal.addEventListener('touchend', () => { accelerating = false; });
+        racePedal.addEventListener('mousedown', () => { accelerating = true; });
+        racePedal.addEventListener('mouseup', () => { accelerating = false; });
 
-        brakeBtn.addEventListener('touchstart', () => { braking = true; });
-        brakeBtn.addEventListener('touchend', () => { braking = false; });
-        brakeBtn.addEventListener('mousedown', () => { braking = true; });
-        brakeBtn.addEventListener('mouseup', () => { braking = false; });
+        brakePedal.addEventListener('touchstart', () => { braking = true; });
+        brakePedal.addEventListener('touchend', () => { braking = false; });
+        brakePedal.addEventListener('mousedown', () => { braking = true; });
+        brakePedal.addEventListener('mouseup', () => { braking = false; });
 
-        // Game Loop
+        // Animation Loop
+        let clock = new THREE.Clock();
         function animate() {
             requestAnimationFrame(animate);
+            let delta = clock.getDelta();
 
             if (accelerating) {
-                if (speed < maxSpeed) speed += 0.01;
+                if (speed < maxSpeed) speed += 0.015;
             } else if (braking) {
-                if (speed > 0) speed -= 0.02;
-                else if (speed <= 0) speed = 0;
+                if (speed > 0) speed -= 0.03;
+                else speed = 0;
             } else {
-                if (speed > 0) speed -= 0.005;
+                if (speed > 0) speed -= 0.008;
             }
 
             road.position.z -= speed;
-            if (road.position.z < -500) road.position.z = 0;
+            if (road.position.z < -600) road.position.z = 0;
 
-            document.getElementById('speedometer').innerText = `SPEED: ${Math.round(speed * 160)} KM/H`;
+            // Monkey swing effect based on speed and movement
+            monkeyGroup.rotation.z = Math.sin(Date.now() * 0.008) * 0.15 + (steeringVal * 0.2);
+
+            document.getElementById('speed-display').innerText = `SPEED: ${Math.round(speed * 180)} KM/H`;
 
             renderer.render(scene, camera);
         }
