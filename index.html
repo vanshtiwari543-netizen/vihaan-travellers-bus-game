@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vihaan Travellers - 3D Bus Simulator</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #111; font-family: Arial, sans-serif; user-select: none; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        
+        /* UI Overlay */
+        #hud {
+            position: absolute; top: 10px; left: 10px; right: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            pointer-events: none; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .brand-banner {
+            background: linear-gradient(135deg, #222, #444);
+            border: 2px solid gold; padding: 8px 16px; border-radius: 8px;
+            font-size: 18px; font-weight: bold; letter-spacing: 2px; color: gold;
+        }
+        .controls-hint {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px;
+            color: #fff; font-size: 14px; pointer-events: none; text-align: center;
+        }
+        .pedal-box {
+            position: absolute; bottom: 20px; right: 20px; display: flex; gap: 15px;
+        }
+        .btn-control {
+            width: 70px; height: 120px; background: rgba(255,255,255,0.3);
+            border: 2px solid white; border-radius: 10px; color: white;
+            font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center;
+            touch-action: manipulation;
+        }
+        #brake-btn { background: rgba(200, 50, 50, 0.5); }
+        #race-btn { background: rgba(50, 200, 50, 0.5); height: 140px; width: 80px; }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="brand-banner">VIHAAN TRAVELLERS</div>
+        <div id="speedometer" style="font-size: 20px; font-weight: bold;">SPEED: 0 KM/H</div>
+    </div>
+
+    <div class="controls-hint">Left: Steering | Right: Brake & Race (Long press brake for Reverse)</div>
+
+    <div class="pedal-box">
+        <div id="brake-btn" class="btn-control">BRAKE</div>
+        <div id="race-btn" class="btn-control">RACE</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Three.js Library for 3D Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Basic 3D Scene Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050515); // Night mode base
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // Road (South Delhi to North Delhi Expressway simulation)
+        const roadGeo = new THREE.PlaneGeometry(12, 1000);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI / 2;
+        scene.add(road);
+
+        // Bus Object (Placeholder representing Vihaan Travellers Bus)
+        const busGroup = new THREE.Group();
+        
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5 });
+        const busBody = new THREE.Mesh(new THREE.BoxGeometry(3, 2.5, 7), bodyMat);
+        busBody.position.y = 1.25;
+        busGroup.add(busBody);
+
+        // Roof Branding text placeholder simulation
+        camera.position.set(0, 4, -8);
+        camera.lookAt(0, 1, 5);
+
+        let speed = 0;
+        let maxSpeed = 0.5;
+        let accelerating = false;
+        let braking = false;
+
+        // Touch Controls Event Listeners
+        const raceBtn = document.getElementById('race-btn');
+        const brakeBtn = document.getElementById('brake-btn');
+
+        raceBtn.addEventListener('touchstart', () => { accelerating = true; });
+        raceBtn.addEventListener('touchend', () => { accelerating = false; });
+        raceBtn.addEventListener('mousedown', () => { accelerating = true; });
+        raceBtn.addEventListener('mouseup', () => { accelerating = false; });
+
+        brakeBtn.addEventListener('touchstart', () => { braking = true; });
+        brakeBtn.addEventListener('touchend', () => { braking = false; });
+        brakeBtn.addEventListener('mousedown', () => { braking = true; });
+        brakeBtn.addEventListener('mouseup', () => { braking = false; });
+
+        // Game Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (accelerating) {
+                if (speed < maxSpeed) speed += 0.01;
+            } else if (braking) {
+                if (speed > 0) speed -= 0.02;
+                else if (speed <= 0) speed = 0;
+            } else {
+                if (speed > 0) speed -= 0.005;
+            }
+
+            road.position.z -= speed;
+            if (road.position.z < -500) road.position.z = 0;
+
+            document.getElementById('speedometer').innerText = `SPEED: ${Math.round(speed * 160)} KM/H`;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
